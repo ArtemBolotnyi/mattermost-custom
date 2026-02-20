@@ -2461,6 +2461,14 @@ export default class Client4 {
         );
     };
 
+    countFlaggedPosts = (userId: string, channelId = '', teamId = '') => {
+        // Викликаємо через плагін endpoint
+        return this.doFetch<{ count: number }>(
+            `/plugins/com.flf.saved-counter/api/v4/users/${userId}/posts/count/flagged${buildQueryString({channel_id: channelId, team_id: teamId})}`,
+            {method: 'get'},
+        );
+    };
+
     getPinnedPosts = (channelId: string) => {
         return this.doFetch<PostList>(
             `${this.getChannelRoute(channelId)}/pinned`,
