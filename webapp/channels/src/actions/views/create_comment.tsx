@@ -67,7 +67,7 @@ export function submitPost(
             metadata: {
                 ...(draft.metadata?.priority && {priority: draft.metadata.priority}),
             },
-            props: {...draft.props},
+            props: {...draft.props, send_to_channel: draft.sendToChannel || false},
         } as unknown as Post;
 
         const channel = getChannel(state, channelId);

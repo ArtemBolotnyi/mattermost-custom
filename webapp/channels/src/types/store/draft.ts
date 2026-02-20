@@ -25,6 +25,7 @@ export type PostDraft = {
     createAt: number;
     updateAt: number;
     show?: boolean;
+    sendToChannel?: boolean;
     type?: PostType;
     metadata?: {
         priority?: {

@@ -214,6 +214,7 @@ const useSubmit = (
                 updateAt: 0,
                 channelId,
                 rootId,
+                sendToChannel: submittingDraft.sendToChannel || false,
             }, {instant: true});
         } catch (err: unknown) {
             if (isServerError(err)) {
