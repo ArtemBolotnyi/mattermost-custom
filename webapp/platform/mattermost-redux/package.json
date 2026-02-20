@@ -61,7 +61,7 @@
   },
   "scripts": {
     "build": "tsc --build --verbose",
-    "postbuild": "sh postbuild.sh",
+    "postbuild": "powershell -ExecutionPolicy Bypass -File postbuild.ps1",
     "clean": "rm -rf lib node_modules *.tsbuildinfo"
   }
 }
