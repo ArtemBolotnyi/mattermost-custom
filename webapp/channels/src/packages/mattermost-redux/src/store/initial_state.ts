@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import type {GlobalState} from '@mattermost/types/store';
+import type {SearchState} from '@mattermost/types/search';
 
 import {zeroStateLimitedViews} from '../reducers/entities/posts';
 
@@ -158,16 +159,17 @@ const state: GlobalState = {
             nonExistentEmoji: new Set(),
         },
         search: {
+            current: {},
             results: [],
             fileResults: [],
-            current: {},
-            matches: {},
             flagged: [],
+            flaggedCount: 0,
             pinned: {},
             isSearchingTerm: false,
             isSearchGettingMore: false,
             isLimitedResults: -1,
-        },
+            matches: {},
+        } as SearchState,
         typing: {},
         roles: {
             roles: {},
