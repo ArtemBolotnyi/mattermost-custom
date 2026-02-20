@@ -719,6 +719,59 @@ export function getPosts(channelId: string, page = 0, perPage = Posts.POST_CHUNK
             return {error};
         }
 
+        // Якщо collapsedThreads увімкнено і це перша сторінка, завантажуємо також повідомлення з send_to_channel: true
+        if (collapsedThreadsEnabled && page === 0) {
+            try {
+                const postsWithoutCollapse = await Client4.getPosts(channelId, page, perPage, fetchThreads, false, collapsedThreadsExtended);
+                // Знаходимо повідомлення з send_to_channel: true, які не були в оригінальному order
+                const originalOrderSet = new Set(posts.order || []);
+                const postsWithSendToChannel = Object.values(postsWithoutCollapse.posts || {}).filter((post: Post) => 
+                    post.root_id && 
+                    post.props?.send_to_channel === true &&
+                    !originalOrderSet.has(post.id)
+                );
+                
+                if (postsWithSendToChannel.length > 0) {
+                    // Додаємо ці повідомлення до posts та order
+                    const updatedPosts = {...posts.posts};
+                    
+                    // Спочатку додаємо всі повідомлення до updatedPosts
+                    postsWithSendToChannel.forEach((post: Post) => {
+                        updatedPosts[post.id] = post;
+                    });
+                    
+                    // Створюємо новий order, додаючи повідомлення в правильному порядку (від нових до старих)
+                    // Фільтруємо тільки ті, яких немає в оригінальному order
+                    const postsToAdd = postsWithSendToChannel.filter((post: Post) => !originalOrderSet.has(post.id));
+                    const updatedOrder = [...(posts.order || [])];
+                    
+                    postsToAdd.forEach((post: Post) => {
+                        // Знаходимо правильне місце для вставки (order відсортований від нових до старих)
+                        // Шукаємо перше повідомлення, яке старіше за поточне
+                        const insertIndex = updatedOrder.findIndex(id => {
+                            const existingPost = updatedPosts[id];
+                            return existingPost && existingPost.create_at < post.create_at;
+                        });
+                        if (insertIndex === -1) {
+                            // Якщо не знайдено старішого повідомлення, додаємо в кінець (найстаріше)
+                            updatedOrder.push(post.id);
+                        } else {
+                            // Вставляємо перед старішим повідомленням
+                            updatedOrder.splice(insertIndex, 0, post.id);
+                        }
+                    });
+                    
+                    posts = {
+                        ...posts,
+                        posts: updatedPosts,
+                        order: updatedOrder,
+                    };
+                }
+            } catch (error) {
+                // Ігноруємо помилку завантаження без collapsedThreads
+            }
+        }
+
         dispatch(batchActions([
             receivedPosts(posts),
             receivedPostsInChannel(posts, channelId, page === 0, posts.prev_post_id === ''),
@@ -743,6 +796,60 @@ export function getPostsUnread(channelId: string, fetchThreads = true, collapsed
 
             if (posts.next_post_id && shouldLoadRecent) {
                 recentPosts = await Client4.getPosts(channelId, 0, Posts.POST_CHUNK_SIZE / 2, fetchThreads, collapsedThreadsEnabled, collapsedThreadsExtended);
+            }
+            
+            // Якщо collapsedThreads увімкнено, завантажуємо також повідомлення з send_to_channel: true
+            if (collapsedThreadsEnabled) {
+                try {
+                    const postsWithoutCollapse = await Client4.getPosts(channelId, 0, Posts.POST_CHUNK_SIZE, fetchThreads, false, collapsedThreadsExtended);
+                    // Знаходимо повідомлення з send_to_channel: true, які не були в оригінальному order
+                    const originalOrderSet = new Set(posts.order || []);
+                    const postsWithSendToChannel = Object.values(postsWithoutCollapse.posts || {}).filter((post: Post) => 
+                        post.root_id && 
+                        post.props?.send_to_channel === true &&
+                        !originalOrderSet.has(post.id)
+                    );
+                    
+                    if (postsWithSendToChannel.length > 0) {
+                        // Додаємо ці повідомлення до posts та order
+                        const updatedPosts = {...posts.posts};
+                        const originalOrderSet = new Set(posts.order || []);
+                        
+                        // Спочатку додаємо всі повідомлення до updatedPosts
+                        postsWithSendToChannel.forEach((post: Post) => {
+                            updatedPosts[post.id] = post;
+                        });
+                        
+                        // Створюємо новий order, додаючи повідомлення в правильному порядку (від нових до старих)
+                        // Фільтруємо тільки ті, яких немає в оригінальному order
+                        const postsToAdd = postsWithSendToChannel.filter((post: Post) => !originalOrderSet.has(post.id));
+                        const updatedOrder = [...(posts.order || [])];
+                        
+                        postsToAdd.forEach((post: Post) => {
+                            // Знаходимо правильне місце для вставки (order відсортований від нових до старих)
+                            // Шукаємо перше повідомлення, яке старіше за поточне
+                            const insertIndex = updatedOrder.findIndex(id => {
+                                const existingPost = updatedPosts[id];
+                                return existingPost && existingPost.create_at < post.create_at;
+                            });
+                            if (insertIndex === -1) {
+                                // Якщо не знайдено старішого повідомлення, додаємо в кінець (найстаріше)
+                                updatedOrder.push(post.id);
+                            } else {
+                                // Вставляємо перед старішим повідомленням
+                                updatedOrder.splice(insertIndex, 0, post.id);
+                            }
+                        });
+                        
+                        posts = {
+                            ...posts,
+                            posts: updatedPosts,
+                            order: updatedOrder,
+                        };
+                    }
+                } catch (error) {
+                    // Ігноруємо помилку завантаження без collapsedThreads
+                }
             }
         } catch (error) {
             forceLogoutIfNecessary(error, dispatch, getState);
