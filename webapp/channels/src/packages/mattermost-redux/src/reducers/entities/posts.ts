@@ -583,7 +583,7 @@ export function postsInChannel(state: Record<string, PostOrderBlock[]> = {}, act
     case PostTypes.RECEIVED_NEW_POST: {
         const post = action.data as Post;
 
-        if (action.features?.crtEnabled && post.root_id) {
+        if (action.features?.crtEnabled && post.root_id && !post.props.send_to_channel) {
             return state;
         }
 
@@ -653,7 +653,7 @@ export function postsInChannel(state: Record<string, PostOrderBlock[]> = {}, act
     case PostTypes.RECEIVED_POST: {
         const post = action.data;
 
-        if (action.features?.crtEnabled && post.root_id) {
+        if (action.features?.crtEnabled && post.root_id && !post.props.send_to_channel) {
             return state;
         }
 
